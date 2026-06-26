@@ -86,10 +86,10 @@ export default function DailyPage() {
     <div className="p-6 max-w-3xl mx-auto space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900" suppressHydrationWarning>
             {isToday ? 'Today' : format(selectedDate, 'EEEE')}
           </h1>
-          <p className="text-sm text-gray-500">{format(selectedDate, 'MMMM d, yyyy')}</p>
+          <p className="text-sm text-gray-500" suppressHydrationWarning>{format(selectedDate, 'MMMM d, yyyy')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
