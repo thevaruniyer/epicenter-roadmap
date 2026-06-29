@@ -117,7 +117,7 @@ export async function updateStudentProfile(
     if (existing) return { error: 'Username is already taken' }
   }
 
-  const profileUpdates: Record<string, string | number> = {}
+  const profileUpdates: { full_name?: string; username?: string; weekly_load_cap?: number } = {}
   if (updates.full_name) profileUpdates.full_name = updates.full_name
   if (updates.username) profileUpdates.username = updates.username
   if (updates.weekly_load_cap !== undefined) profileUpdates.weekly_load_cap = updates.weekly_load_cap
