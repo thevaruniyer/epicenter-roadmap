@@ -3,7 +3,11 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 export async function proxy(request: NextRequest) {
   // Guard: if env vars are missing (e.g. Vercel misconfiguration), fail open
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    !process.env.SUPABASE_SERVICE_ROLE_KEY
+  ) {
     return NextResponse.next({ request })
   }
 

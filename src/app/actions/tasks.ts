@@ -100,36 +100,39 @@ export async function performCarryForward(
     'yyyy-MM-dd'
   )
 
-  const { data: lastWeekTasks } = await db
-    .from('tasks')
-    .select('*')
-    .eq('student_id', studentId)
-    .eq('view_level', 'weekly')
-    .eq('week_start', lastWeekStart)
-    .neq('status', 'done')
-
-  if (!lastWeekTasks) return
-
-  for (const task of lastWeekTasks) {
-    const { data: existing } = await db
+  // Batch fetch: last week's incomplete tasks + already-carried IDs in one round trip each
+  const [{ data: lastWeekTasks }, { data: existingCarried }] = await Promise.all([
+    db
       .from('tasks')
-      .select('id')
+      .select('*')
       .eq('student_id', studentId)
-      .eq('original_task_id', task.id)
-      .eq('week_start', currentWeekStart)
+      .eq('view_level', 'weekly')
+      .eq('week_start', lastWeekStart)
+      .neq('status', 'done'),
+    db
+      .from('tasks')
+      .select('original_task_id')
+      .eq('student_id', studentId)
       .eq('is_carried_over', true)
-      .maybeSingle()
+      .eq('week_start', currentWeekStart),
+  ])
 
-    if (existing) continue
+  if (!lastWeekTasks || lastWeekTasks.length === 0) return
 
-    await db.from('tasks').insert({
+  const alreadyCarried = new Set(
+    (existingCarried ?? []).map((t) => t.original_task_id).filter(Boolean)
+  )
+
+  const toInsert = lastWeekTasks
+    .filter((task) => !alreadyCarried.has(task.id))
+    .map((task) => ({
       student_id: task.student_id,
       assigned_by: task.assigned_by,
       title: task.title,
       description: task.description,
-      view_level: 'weekly',
+      view_level: 'weekly' as const,
       week_start: currentWeekStart,
-      status: 'not_started',
+      status: 'not_started' as const,
       category: task.category,
       estimated_minutes: task.estimated_minutes,
       is_admin_assigned: task.is_admin_assigned,
@@ -139,7 +142,10 @@ export async function performCarryForward(
       parent_monthly_task_id: task.parent_monthly_task_id,
       carry_forward_count: task.carry_forward_count + 1,
       notes: task.notes,
-    })
+    }))
+
+  if (toInsert.length > 0) {
+    await db.from('tasks').insert(toInsert)
   }
 }
 

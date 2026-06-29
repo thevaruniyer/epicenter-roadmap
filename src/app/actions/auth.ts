@@ -93,3 +93,46 @@ export async function deleteStudentAccount(userId: string) {
 
   return { success: true }
 }
+
+export async function updateStudentProfile(
+  userId: string,
+  updates: {
+    full_name?: string
+    username?: string
+    weekly_load_cap?: number
+    password?: string
+  }
+) {
+  const adminClient = createAdminClient()
+
+  // Check username uniqueness if changing
+  if (updates.username) {
+    const { data: existing } = await adminClient
+      .from('profiles')
+      .select('id')
+      .eq('username', updates.username)
+      .neq('id', userId)
+      .maybeSingle()
+
+    if (existing) return { error: 'Username is already taken' }
+  }
+
+  const profileUpdates: Record<string, string | number> = {}
+  if (updates.full_name) profileUpdates.full_name = updates.full_name
+  if (updates.username) profileUpdates.username = updates.username
+  if (updates.weekly_load_cap !== undefined) profileUpdates.weekly_load_cap = updates.weekly_load_cap
+
+  const [profileResult, authResult] = await Promise.all([
+    Object.keys(profileUpdates).length > 0
+      ? adminClient.from('profiles').update(profileUpdates).eq('id', userId)
+      : Promise.resolve({ error: null }),
+    updates.password
+      ? adminClient.auth.admin.updateUserById(userId, { password: updates.password })
+      : Promise.resolve({ error: null }),
+  ])
+
+  if (profileResult.error) return { error: profileResult.error.message }
+  if (authResult.error) return { error: (authResult.error as { message: string }).message }
+
+  return { success: true }
+}

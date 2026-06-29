@@ -5,6 +5,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -69,17 +70,19 @@ export function FilterBar({ filters, onChange, showAssignedBy = true }: FilterBa
           <ChevronDown className="h-3 w-3" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-44">
-          <DropdownMenuLabel>Filter by Category</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {ALL_CATEGORIES.map((cat) => (
-            <DropdownMenuCheckboxItem
-              key={cat}
-              checked={filters.categories.includes(cat)}
-              onCheckedChange={() => toggleCategory(cat)}
-            >
-              {cat}
-            </DropdownMenuCheckboxItem>
-          ))}
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Filter by Category</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {ALL_CATEGORIES.map((cat) => (
+              <DropdownMenuCheckboxItem
+                key={cat}
+                checked={filters.categories.includes(cat)}
+                onCheckedChange={() => toggleCategory(cat)}
+              >
+                {cat}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -98,17 +101,19 @@ export function FilterBar({ filters, onChange, showAssignedBy = true }: FilterBa
           <ChevronDown className="h-3 w-3" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-44">
-          <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {ALL_STATUSES.map((status) => (
-            <DropdownMenuCheckboxItem
-              key={status}
-              checked={filters.statuses.includes(status)}
-              onCheckedChange={() => toggleStatus(status)}
-            >
-              {statusLabels[status]}
-            </DropdownMenuCheckboxItem>
-          ))}
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {ALL_STATUSES.map((status) => (
+              <DropdownMenuCheckboxItem
+                key={status}
+                checked={filters.statuses.includes(status)}
+                onCheckedChange={() => toggleStatus(status)}
+              >
+                {statusLabels[status]}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -128,17 +133,19 @@ export function FilterBar({ filters, onChange, showAssignedBy = true }: FilterBa
             <ChevronDown className="h-3 w-3" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-40">
-            <DropdownMenuLabel>Filter by Source</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {(['all', 'admin', 'self'] as const).map((val) => (
-              <DropdownMenuCheckboxItem
-                key={val}
-                checked={filters.assignedBy === val}
-                onCheckedChange={() => onChange({ ...filters, assignedBy: val })}
-              >
-                {val === 'all' ? 'All' : val === 'admin' ? 'Admin-assigned' : 'Self-assigned'}
-              </DropdownMenuCheckboxItem>
-            ))}
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>Filter by Source</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {(['all', 'admin', 'self'] as const).map((val) => (
+                <DropdownMenuCheckboxItem
+                  key={val}
+                  checked={filters.assignedBy === val}
+                  onCheckedChange={() => onChange({ ...filters, assignedBy: val })}
+                >
+                  {val === 'all' ? 'All' : val === 'admin' ? 'Admin-assigned' : 'Self-assigned'}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       )}

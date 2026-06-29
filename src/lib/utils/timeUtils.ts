@@ -31,7 +31,7 @@ export function getAcademicYearMonths(): { value: number; label: string; year: n
 
   const academicStartYear = currentMonth >= 8 ? currentYear : currentYear - 1
 
-  return [
+  const year1Months = [
     { value: 8, label: 'August', year: academicStartYear },
     { value: 9, label: 'September', year: academicStartYear },
     { value: 10, label: 'October', year: academicStartYear },
@@ -45,6 +45,23 @@ export function getAcademicYearMonths(): { value: number; label: string; year: n
     { value: 6, label: 'June', year: academicStartYear + 1 },
     { value: 7, label: 'July', year: academicStartYear + 1 },
   ]
+
+  const year2Months = [
+    { value: 8, label: 'August', year: academicStartYear + 1 },
+    { value: 9, label: 'September', year: academicStartYear + 1 },
+    { value: 10, label: 'October', year: academicStartYear + 1 },
+    { value: 11, label: 'November', year: academicStartYear + 1 },
+    { value: 12, label: 'December', year: academicStartYear + 1 },
+    { value: 1, label: 'January', year: academicStartYear + 2 },
+    { value: 2, label: 'February', year: academicStartYear + 2 },
+    { value: 3, label: 'March', year: academicStartYear + 2 },
+    { value: 4, label: 'April', year: academicStartYear + 2 },
+    { value: 5, label: 'May', year: academicStartYear + 2 },
+    { value: 6, label: 'June', year: academicStartYear + 2 },
+    { value: 7, label: 'July', year: academicStartYear + 2 },
+  ]
+
+  return [...year1Months, ...year2Months]
 }
 
 export function getInitials(name: string): string {

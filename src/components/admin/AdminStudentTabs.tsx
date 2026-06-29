@@ -22,7 +22,11 @@ import { TaskForm } from '@/components/tasks/TaskForm'
 import { FilterBar } from '@/components/tasks/FilterBar'
 import { MonthProgressBar } from '@/components/charts/MonthProgressBar'
 import { WeeklyLoadBar } from '@/components/charts/WeeklyLoadBar'
-import { createClient } from '@/lib/supabase/client'
+import {
+  fetchMonthlyTasks,
+  fetchWeeklyTasks,
+  fetchDailyTasks,
+} from '@/app/actions/tasks'
 import {
   getAcademicYearMonths,
   getWeekStart,
@@ -39,7 +43,6 @@ interface AdminStudentTabsProps {
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export function AdminStudentTabs({ student, adminProfile: adminProfileProp }: AdminStudentTabsProps) {
-  const supabase = createClient()
   const months = getAcademicYearMonths()
   const today = new Date()
   const defaultMonth = months.find(
@@ -62,28 +65,16 @@ export function AdminStudentTabs({ student, adminProfile: adminProfileProp }: Ad
   const loadTasks = useCallback(async () => {
     setLoading(true)
 
-    let query = supabase
-      .from('tasks')
-      .select('*')
-      .eq('student_id', student.id)
-
+    let data: Task[] = []
     if (activeTab === 'monthly') {
-      query = query
-        .eq('view_level', 'monthly')
-        .eq('month', selectedMonth.value)
-        .eq('year', selectedMonth.year)
+      data = await fetchMonthlyTasks(student.id, selectedMonth.value, selectedMonth.year)
     } else if (activeTab === 'weekly') {
-      query = query
-        .eq('view_level', 'weekly')
-        .eq('week_start', weekStartStr)
+      data = await fetchWeeklyTasks(student.id, weekStartStr)
     } else {
-      query = query
-        .eq('view_level', 'daily')
-        .eq('day_date', dateStr)
+      data = await fetchDailyTasks(student.id, dateStr)
     }
 
-    const { data } = await query.order('created_at', { ascending: true })
-    setTasks(data ?? [])
+    setTasks(data)
     setLoading(false)
   }, [activeTab, selectedMonth, weekStartStr, dateStr, student.id])
 

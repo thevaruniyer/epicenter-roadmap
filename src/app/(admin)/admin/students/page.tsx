@@ -6,6 +6,8 @@ import { getInitials } from '@/lib/utils/timeUtils'
 import { format } from 'date-fns'
 import { CreateStudentDialog } from '@/components/admin/CreateStudentDialog'
 import { DeleteStudentButton } from '@/components/admin/DeleteStudentButton'
+import { EditStudentDialog } from '@/components/admin/EditStudentDialog'
+import type { Profile } from '@/lib/types/app.types'
 
 export default async function StudentsPage() {
   const supabase = await createClient()
@@ -65,6 +67,7 @@ export default async function StudentsPage() {
                     >
                       View
                     </Link>
+                    <EditStudentDialog student={student as Profile} />
                     <DeleteStudentButton studentId={student.id} studentName={student.full_name} />
                   </div>
                 </div>
