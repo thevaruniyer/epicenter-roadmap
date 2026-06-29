@@ -48,9 +48,12 @@ export type Database = {
           status: 'not_started' | 'in_progress' | 'done' | 'blocked'
           category: 'EC' | 'SAT Prep' | 'Essays' | 'Academic' | 'Admin' | 'Personal'
           estimated_minutes: number
+          actual_minutes: number | null
+          scheduled_time: string | null
           is_admin_assigned: boolean
           is_locked: boolean
           is_carried_over: boolean
+          is_admin_approved: boolean | null
           original_task_id: string | null
           parent_monthly_task_id: string | null
           carry_forward_count: number
@@ -72,9 +75,12 @@ export type Database = {
           status?: 'not_started' | 'in_progress' | 'done' | 'blocked'
           category: 'EC' | 'SAT Prep' | 'Essays' | 'Academic' | 'Admin' | 'Personal'
           estimated_minutes?: number
+          actual_minutes?: number | null
+          scheduled_time?: string | null
           is_admin_assigned?: boolean
           is_locked?: boolean
           is_carried_over?: boolean
+          is_admin_approved?: boolean | null
           original_task_id?: string | null
           parent_monthly_task_id?: string | null
           carry_forward_count?: number
@@ -96,9 +102,12 @@ export type Database = {
           status?: 'not_started' | 'in_progress' | 'done' | 'blocked'
           category?: 'EC' | 'SAT Prep' | 'Essays' | 'Academic' | 'Admin' | 'Personal'
           estimated_minutes?: number
+          actual_minutes?: number | null
+          scheduled_time?: string | null
           is_admin_assigned?: boolean
           is_locked?: boolean
           is_carried_over?: boolean
+          is_admin_approved?: boolean | null
           original_task_id?: string | null
           parent_monthly_task_id?: string | null
           carry_forward_count?: number
@@ -175,12 +184,69 @@ export type Database = {
           }
         ]
       }
+      activity_log: {
+        Row: {
+          id: string
+          student_id: string
+          action_type: string
+          task_id: string | null
+          task_title: string | null
+          old_value: string | null
+          new_value: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          action_type: string
+          task_id?: string | null
+          task_title?: string | null
+          old_value?: string | null
+          new_value?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          student_id?: string
+          action_type?: string
+          task_id?: string | null
+          task_title?: string | null
+          old_value?: string | null
+          new_value?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'activity_log_student_id_fkey'
+            columns: ['student_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      student_progress_summary: {
+        Row: {
+          student_id: string
+          full_name: string
+          username: string
+          weekly_load_cap: number
+          total_admin_tasks_month: number | null
+          completed_admin_tasks_month: number | null
+          blocked_tasks: number | null
+          tasks_this_week: number | null
+          last_task_updated: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      perform_carry_forward: {
+        Args: { p_student_id: string; p_week_start: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

@@ -26,7 +26,9 @@ import {
   fetchMonthlyTasks,
   fetchWeeklyTasks,
   fetchDailyTasks,
+  fetchTimeInsights,
 } from '@/app/actions/tasks'
+import type { TimeInsightTask } from '@/app/actions/tasks'
 import {
   getAcademicYearMonths,
   getWeekStart,
@@ -58,6 +60,8 @@ export function AdminStudentTabs({ student, adminProfile: adminProfileProp }: Ad
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<FilterState>({ categories: [], statuses: [], assignedBy: 'all' })
   const [showAddTask, setShowAddTask] = useState(false)
+  const [timeInsights, setTimeInsights] = useState<TimeInsightTask[]>([])
+  const [insightsLoading, setInsightsLoading] = useState(false)
 
   const weekStartStr = format(weekStart, 'yyyy-MM-dd')
   const dateStr = format(selectedDate, 'yyyy-MM-dd')
@@ -79,6 +83,16 @@ export function AdminStudentTabs({ student, adminProfile: adminProfileProp }: Ad
   }, [activeTab, selectedMonth, weekStartStr, dateStr, student.id])
 
   useEffect(() => { loadTasks() }, [loadTasks])
+
+  useEffect(() => {
+    if (activeTab !== 'insights') return
+    if (timeInsights.length > 0) return
+    setInsightsLoading(true)
+    fetchTimeInsights(student.id).then(data => {
+      setTimeInsights(data)
+      setInsightsLoading(false)
+    })
+  }, [activeTab, student.id, timeInsights.length])
 
   const filteredTasks = tasks.filter((t) => {
     if (filters.categories.length > 0 && !filters.categories.includes(t.category as TaskCategory)) return false
@@ -112,6 +126,7 @@ export function AdminStudentTabs({ student, adminProfile: adminProfileProp }: Ad
             <TabsTrigger value="monthly">Monthly</TabsTrigger>
             <TabsTrigger value="weekly">Weekly</TabsTrigger>
             <TabsTrigger value="daily">Daily</TabsTrigger>
+            <TabsTrigger value="insights">Time Insights</TabsTrigger>
           </TabsList>
           <Button size="sm" onClick={() => setShowAddTask(true)}>+ Add task</Button>
         </div>
@@ -186,6 +201,9 @@ export function AdminStudentTabs({ student, adminProfile: adminProfileProp }: Ad
           <FilterBar filters={filters} onChange={setFilters} />
           <TaskGrid tasks={filteredTasks} loading={loading} isAdmin studentId={student.id} adminProfile={adminProfile} onRefresh={loadTasks} />
         </TabsContent>
+        <TabsContent value="insights" className="mt-4">
+          <TimeInsightsPanel tasks={timeInsights} loading={insightsLoading} />
+        </TabsContent>
       </Tabs>
 
       <Dialog open={showAddTask} onOpenChange={setShowAddTask}>
@@ -253,6 +271,142 @@ function TaskGrid({
           studentId={studentId}
         />
       ))}
+    </div>
+  )
+}
+
+const CATEGORY_COLORS: Record<string, string> = {
+  EC: '#6366f1',
+  'SAT Prep': '#f59e0b',
+  Essays: '#10b981',
+  Academic: '#3b82f6',
+  Admin: '#8b5cf6',
+  Personal: '#ec4899',
+}
+
+function TimeInsightsPanel({ tasks, loading }: { tasks: TimeInsightTask[]; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        {[1, 2, 3].map(i => <Skeleton key={i} className="h-10 rounded" />)}
+      </div>
+    )
+  }
+
+  if (tasks.length === 0) {
+    return (
+      <div className="text-center py-12 text-gray-400">
+        <p className="text-sm font-medium">No time data yet</p>
+        <p className="text-xs mt-1">Students must log actual time when marking tasks done.</p>
+      </div>
+    )
+  }
+
+  // Category breakdown
+  const byCategory: Record<string, { estimated: number; actual: number; count: number }> = {}
+  for (const t of tasks) {
+    if (!byCategory[t.category]) byCategory[t.category] = { estimated: 0, actual: 0, count: 0 }
+    byCategory[t.category].estimated += t.estimated_minutes
+    byCategory[t.category].actual += (t.actual_minutes ?? 0)
+    byCategory[t.category].count++
+  }
+
+  const totalEst = tasks.reduce((s, t) => s + t.estimated_minutes, 0)
+  const totalAct = tasks.reduce((s, t) => s + (t.actual_minutes ?? 0), 0)
+  const maxBar = Math.max(...Object.values(byCategory).map(c => Math.max(c.estimated, c.actual)), 1)
+
+  return (
+    <div className="space-y-6">
+      {/* Summary row */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-gray-50 rounded-lg p-3 text-center">
+          <p className="text-lg font-bold">{tasks.length}</p>
+          <p className="text-xs text-muted-foreground">tasks tracked</p>
+        </div>
+        <div className="bg-blue-50 rounded-lg p-3 text-center">
+          <p className="text-lg font-bold text-blue-700">{Math.round(totalEst / 60 * 10) / 10}h</p>
+          <p className="text-xs text-blue-500">estimated</p>
+        </div>
+        <div className={`rounded-lg p-3 text-center ${totalAct > totalEst ? 'bg-red-50' : 'bg-green-50'}`}>
+          <p className={`text-lg font-bold ${totalAct > totalEst ? 'text-red-700' : 'text-green-700'}`}>
+            {Math.round(totalAct / 60 * 10) / 10}h
+          </p>
+          <p className={`text-xs ${totalAct > totalEst ? 'text-red-500' : 'text-green-500'}`}>actual</p>
+        </div>
+      </div>
+
+      {/* Category bar chart (inline SVG) */}
+      <div>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">By Category</h3>
+        <div className="space-y-3">
+          {Object.entries(byCategory).map(([cat, data]) => {
+            const estPct = Math.round((data.estimated / maxBar) * 100)
+            const actPct = Math.round((data.actual / maxBar) * 100)
+            const color = CATEGORY_COLORS[cat] ?? '#94a3b8'
+            return (
+              <div key={cat} className="space-y-0.5">
+                <div className="flex justify-between text-xs">
+                  <span className="font-medium" style={{ color }}>{cat}</span>
+                  <span className="text-muted-foreground">
+                    {data.count} task{data.count !== 1 ? 's' : ''} · {Math.round(data.estimated / 60 * 10) / 10}h est / {Math.round(data.actual / 60 * 10) / 10}h actual
+                  </span>
+                </div>
+                <div className="space-y-0.5">
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full opacity-40" style={{ width: `${estPct}%`, backgroundColor: color }} />
+                  </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${actPct}%`, backgroundColor: color }} />
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        <div className="flex gap-4 mt-2">
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <div className="w-3 h-2 bg-gray-400 rounded-full opacity-40" /> Estimated
+          </div>
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <div className="w-3 h-2 bg-gray-400 rounded-full" /> Actual
+          </div>
+        </div>
+      </div>
+
+      {/* Per-task table */}
+      <div>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Recent Tasks</h3>
+        <div className="rounded-lg border overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-gray-50 text-muted-foreground">
+                <th className="text-left px-3 py-2 font-medium">Task</th>
+                <th className="text-right px-3 py-2 font-medium">Est.</th>
+                <th className="text-right px-3 py-2 font-medium">Actual</th>
+                <th className="text-right px-3 py-2 font-medium">Δ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {tasks.slice(0, 20).map((t, i) => {
+                const delta = (t.actual_minutes ?? 0) - t.estimated_minutes
+                return (
+                  <tr key={i} className="hover:bg-gray-50">
+                    <td className="px-3 py-2 max-w-[200px] truncate">
+                      <span className="font-medium">{t.title}</span>
+                      <span className="ml-2 text-muted-foreground">{t.category}</span>
+                    </td>
+                    <td className="px-3 py-2 text-right">{t.estimated_minutes}m</td>
+                    <td className="px-3 py-2 text-right">{t.actual_minutes ?? '—'}m</td>
+                    <td className={`px-3 py-2 text-right font-medium ${delta > 0 ? 'text-red-500' : delta < 0 ? 'text-green-500' : 'text-gray-400'}`}>
+                      {delta > 0 ? `+${delta}` : delta === 0 ? '0' : delta}m
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

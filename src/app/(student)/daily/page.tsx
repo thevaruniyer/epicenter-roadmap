@@ -11,12 +11,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { TaskCard } from '@/components/tasks/TaskCard'
+import { TimeGrid } from '@/components/tasks/TimeGrid'
 import { TaskForm } from '@/components/tasks/TaskForm'
 import { FilterBar } from '@/components/tasks/FilterBar'
 import { fetchDailyTasks, fetchProfilesByIds } from '@/app/actions/tasks'
 import { minutesToDisplay } from '@/lib/utils/timeUtils'
 import { format, addDays, subDays } from 'date-fns'
+import { LayoutGrid, List } from 'lucide-react'
 import type { Task, Profile, FilterState, TaskCategory } from '@/lib/types/app.types'
+
+const TIME_GRID_KEY = 'daily_time_grid'
 
 export default function DailyPage() {
   const supabase = createClient()
@@ -32,6 +36,19 @@ export default function DailyPage() {
     assignedBy: 'all',
   })
   const [showAddTask, setShowAddTask] = useState(false)
+  const [timeGridOn, setTimeGridOn] = useState(false)
+
+  // Hydrate time grid toggle from localStorage after mount
+  useEffect(() => {
+    const stored = localStorage.getItem(TIME_GRID_KEY)
+    if (stored === 'true') setTimeGridOn(true)
+  }, [])
+
+  function toggleTimeGrid() {
+    const next = !timeGridOn
+    setTimeGridOn(next)
+    localStorage.setItem(TIME_GRID_KEY, String(next))
+  }
 
   const dateStr = format(selectedDate, 'yyyy-MM-dd')
 
@@ -137,9 +154,20 @@ export default function DailyPage() {
 
       <div className="flex items-center justify-between flex-wrap gap-2">
         <FilterBar filters={filters} onChange={setFilters} />
-        <Button size="sm" variant="outline" onClick={() => setShowAddTask(true)}>
-          + Add task
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant={timeGridOn ? 'default' : 'outline'}
+            onClick={toggleTimeGrid}
+            className="gap-1.5"
+          >
+            {timeGridOn ? <LayoutGrid className="h-3.5 w-3.5" /> : <List className="h-3.5 w-3.5" />}
+            Time grid: {timeGridOn ? 'On' : 'Off'}
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setShowAddTask(true)}>
+            + Add task
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -148,6 +176,13 @@ export default function DailyPage() {
             <Skeleton key={i} className="h-32 rounded-lg" />
           ))}
         </div>
+      ) : timeGridOn ? (
+        <TimeGrid
+          tasks={tasks}
+          profiles={profiles}
+          filters={filters}
+          onRefresh={loadData}
+        />
       ) : filteredTasks.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <p className="text-sm font-medium">
@@ -164,6 +199,7 @@ export default function DailyPage() {
               key={task.id}
               task={task}
               assignedByProfile={task.assigned_by ? profiles[task.assigned_by] : null}
+              onRefresh={loadData}
             />
           ))}
         </div>
